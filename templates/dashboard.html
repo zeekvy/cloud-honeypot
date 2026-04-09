@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Honeypot Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <h1>⬡ Honeypot Attack Dashboard</h1>
+
+    <div class="summary-box">
+        <h3>Overview</h3>
+        <p>Total Attacks<span>{{ total }}</span></p>
+        <p>Brute Force<span>{{ brute }}</span></p>
+        <p>Admin Probes<span>{{ admin }}</span></p>
+        <p>Unique IPs<span>{{ unique_ips }}</span></p>
+        <p>Suspicious Paths<span>{{ suspicious }}</span></p>
+        <p>Blocked IPs<span>{{ blocked_ips }}</span></p>
+    </div>
+
+    <h3>Attack Type Breakdown</h3>
+    <canvas id="attackTypeChart" width="400" height="160"></canvas>
+
+    <h3>Top Attacker IPs</h3>
+    <canvas id="topIpChart" width="400" height="160"></canvas>
+
+    <h3>Top Attacker IPs</h3>
+    <table>
+        <tr><th>IP Address</th><th>Attempts</th></tr>
+        {% for ip in top_ips %}
+        <tr>
+            <td>{{ ip.ip_address }}</td>
+            <td>{{ ip.count }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3>Most Targeted Endpoints</h3>
+    <table>
+        <tr><th>Path</th><th>Attempts</th></tr>
+        {% for path in top_paths %}
+        <tr>
+            <td>{{ path.request_path }}</td>
+            <td>{{ path.count }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3>Attack Types</h3>
+    <table>
+        <tr><th>Type</th><th>Count</th></tr>
+        {% for item in attack_types %}
+        <tr>
+            <td>{{ item.attack_type }}</td>
+            <td>{{ item.count }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Recent Attack Logs</h2>
+    <table>
+        <tr>
+            <th>Time</th>
+            <th>IP</th>
+            <th>Country</th>
+            <th>Path</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Type</th>
+            <th>Blocked</th>
+        </tr>
+        {% for log in logs %}
+        <tr class="{% if log.attack_type == 'brute_force' %}danger-row{% elif log.attack_type == 'admin_probe' %}warning-row{% elif log.attack_type == 'suspicious_path' %}suspicious-row{% endif %}">
+            <td>{{ log.created_at }}</td>
+            <td>{{ log.ip_address }}</td>
+            <td>{{ log.country }}</td>
+            <td>{{ log.request_path }}</td>
+            <td>{{ log.username_input }}</td>
+            <td>{{ log.password_input }}</td>
+            <td>{{ log.attack_type }}</td>
+            <td>{% if log.is_blocked == 1 %}Yes{% else %}No{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <script>
+        const attackTypeLabels = {{ attack_types | map(attribute='attack_type') | list | tojson }};
+        const attackTypeCounts = {{ attack_types | map(attribute='count') | list | tojson }};
+        const topIpLabels = {{ top_ips | map(attribute='ip_address') | list | tojson }};
+        const topIpCounts = {{ top_ips | map(attribute='count') | list | tojson }};
+
+        const chartDefaults = {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
+                x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+            }
+        };
+
+        new Chart(document.getElementById("attackTypeChart").getContext("2d"), {
+            type: "bar",
+            data: {
+                labels: attackTypeLabels,
+                datasets: [{ data: attackTypeCounts, backgroundColor: '#f85149', borderRadius: 4 }]
+            },
+            options: chartDefaults
+        });
+
+        new Chart(document.getElementById("topIpChart").getContext("2d"), {
+            type: "bar",
+            data: {
+                labels: topIpLabels,
+                datasets: [{ data: topIpCounts, backgroundColor: '#58a6ff', borderRadius: 4 }]
+            },
+            options: chartDefaults
+        });
+    </script>
+
+</body>
+</html>
